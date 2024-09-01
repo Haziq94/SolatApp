@@ -1,1 +1,2 @@
 https://www.e-solat.gov.my/index.php?r=esolatApi/TakwimSolat&period=today&zone=JHR02
+https://www.e-solat.gov.my/index.php?r=esolatApi/takwimsolat&period=duration&zone=

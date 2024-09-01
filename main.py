@@ -1,52 +1,52 @@
+import requests
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
 from kivy.uix.button import Button
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.gridlayout import GridLayout
-import requests
-from requests.exceptions import RequestException
 
-class PrayerTimesApp(App):
+class WeatherApp(App):
     def build(self):
-        layout = BoxLayout(orientation='vertical')
+        self.layout = BoxLayout(orientation='vertical')
 
-        # Button to fetch data
-        fetch_button = Button(text='Fetch Prayer Times', size_hint_y=None, height=40)
-        fetch_button.bind(on_press=self.fetch_prayer_times)
-        layout.add_widget(fetch_button)
+        # Text input for the city name
+        self.city_input = TextInput(hint_text="Enter city name", multiline=False)
+        self.layout.add_widget(self.city_input)
 
-        # ScrollView to display the fetched data
-        self.scroll_view = ScrollView(size_hint=(1, 1))
-        self.grid_layout = GridLayout(cols=1, size_hint_y=None)
-        self.grid_layout.bind(minimum_height=self.grid_layout.setter('height'))
-        self.scroll_view.add_widget(self.grid_layout)
-        layout.add_widget(self.scroll_view)
-        
-        return layout
+        # Button to fetch weather
+        self.get_weather_button = Button(text="Get Weather")
+        self.get_weather_button.bind(on_press=self.get_weather)
+        self.layout.add_widget(self.get_weather_button)
 
-    def fetch_prayer_times(self, instance):
-        url = 'http://www.e-solat.gov.my/index.php?r=esolatApi/TakwimSolat&period=today&zone=JHR02'
+        # Label to display the weather
+        self.weather_label = Label(text="Weather info will appear here")
+        self.layout.add_widget(self.weather_label)
+
+        return self.layout
+
+    def get_weather(self, instance):
+        city_name = self.city_input.text
+        api_key = "f716ec14c2a9a57fdeb2f28eeedb34d8"  # Replace with your actual API key
+        base_url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}&units=metric"
+
+        # Print the URL for debugging
+        print(f"Request URL: {base_url}")
+
         try:
-            # Disabling SSL certificate verification (not recommended for production)
-            response = requests.get(url, verify=False)
+            response = requests.get(base_url)
+            response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+
             data = response.json()
-
-            # Clear previous widgets
-            self.grid_layout.clear_widgets()
-
-            # Check if the response is successful
-            if data['status'] == 'success':
-                prayer_times = data['data']
-                for prayer, time in prayer_times.items():
-                    self.grid_layout.add_widget(Label(text=f"{prayer}: {time}", size_hint_y=None, height=40))
+            if data.get('cod') == 200:  # Check if the response code is 200 (OK)
+                temperature = data['main']['temp']
+                description = data['weather'][0]['description']
+                self.weather_label.text = f"Temperature: {temperature}°C\nDescription: {description.capitalize()}"
             else:
-                self.grid_layout.add_widget(Label(text='Failed to fetch prayer times.', size_hint_y=None, height=40))
-
-        except RequestException as e:
-            self.grid_layout.clear_widgets()
-            self.grid_layout.add_widget(Label(text=f'Error: {str(e)}', size_hint_y=None, height=40))
-
+                # Handle API errors
+                self.weather_label.text = f"Error: {data.get('message', 'Unknown error')}"
+        except requests.RequestException as e:
+            # Handle network errors or invalid responses
+            self.weather_label.text = f"Request failed: {e}"
 
 if __name__ == '__main__':
-    PrayerTimesApp().run()
+    WeatherApp().run()
